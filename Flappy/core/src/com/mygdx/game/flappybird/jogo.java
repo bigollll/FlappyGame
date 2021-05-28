@@ -2,6 +2,8 @@ package com.mygdx.game.flappybird;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -24,14 +26,17 @@ public class jogo extends ApplicationAdapter {
     private Texture canoBaixo;    //pega imagem do cano.
     private Texture gameOver;     //pega a imagem do game over.
 
-    private int pontos = 0;       //pontos ao passar do cano.
-    private int estadoJogo = 0;   //para depois alterar os estados do jogo.
+    private int pontos = 0;            //pontos ao passar do cano.
+    private int pontuacaoMaxima = 0;   //pontos maximos atingidos.
+    private int estadoJogo = 0;        //para depois alterar os estados do jogo.
 
     BitmapFont textoPontuacao;          //texto da pontuação.
     BitmapFont textoReiniciar;          //texto de reiniciar.
     BitmapFont textoMelhorPontuacao;    //texto de melhor pontuação.
 
-    //Movimenta
+    Preferences preferencias;
+
+    //Movimentação e posição
     private int gravidade = 0;                        //para fazer o passaro cair.
 
     private float variacao = 0;                       //variação de altura pra animação.
@@ -39,6 +44,7 @@ public class jogo extends ApplicationAdapter {
     private float posicaoCanoHorizontal = 0;          //posição do cano.
     private float posicaoCanoVertical;                //posição do cano
     private float espaçoEntreCanos;                   //espaço entre os canos.
+    private float posicaoHorizontalPassaro;           //posição horizontal do passaro.
 
     private boolean passouCano = false;               //se passou ou nao pelo cano.
 
@@ -53,6 +59,11 @@ public class jogo extends ApplicationAdapter {
     private Circle circuloPassaro;              //formato collider do passaro.
     private Rectangle retanguloCanoCima;        //formato collider cano cima.
     private Rectangle retanguloCanoBaixo;       //formato collider cano baixo.
+
+    //Sons
+    Sound somVoando;      //variavel som.
+    Sound somColisão;     //variavel som.
+    Sound somPontuacao;   //variavel som.
 
 
     @Override
@@ -103,7 +114,7 @@ public class jogo extends ApplicationAdapter {
     private void inicializaObjetos() {
 
         batch = new SpriteBatch();                               //instanciando um obj a ser contruido.
-        random = new Random();                                 //para randomizar os canos.
+        random = new Random();                                   //para randomizar os canos.
 
         larguraDispositivo = Gdx.graphics.getWidth();           //pega a largura do dispositivo.
         alturaDispositivo = Gdx.graphics.getHeight();           //pega a altura do dispositivo.
@@ -111,22 +122,29 @@ public class jogo extends ApplicationAdapter {
         posicaoCanoHorizontal = larguraDispositivo;             //iguala a posiçao do cano com o tamanho da tela.
         espaçoEntreCanos = 350;                                 //espaçamento entre os canos na tela.
 
-        textoPontuacao = new BitmapFont();                      // falando que o texto é um bitmapFont.
+        textoPontuacao = new BitmapFont();                      //falando que o texto é um bitmapFont.
         textoPontuacao.setColor(Color.WHITE);                   //colocando cor no texto.
         textoPontuacao.getData().setScale(10);                  //Tamanho da fonte do texto.
 
-        textoMelhorPontuacao = new BitmapFont();                     // falando que o texto é um bitmapFont.
-        textoMelhorPontuacao.setColor(Color.RED);                   //colocando cor no texto.
-        textoMelhorPontuacao.getData().setScale(2);                 //Tamanho da fonte do texto.
+        textoMelhorPontuacao = new BitmapFont();                //falando que o texto é um bitmapFont.
+        textoMelhorPontuacao.setColor(Color.RED);               //colocando cor no texto.
+        textoMelhorPontuacao.getData().setScale(2);             //Tamanho da fonte do texto.
 
-        textoReiniciar = new BitmapFont();                      // falando que o texto é um bitmapFont.
+        textoReiniciar = new BitmapFont();                      //falando que o texto é um bitmapFont.
         textoReiniciar.setColor(Color.GREEN);                   //colocando cor no texto.
-        textoReiniciar.getData().setScale(2);                  //Tamanho da fonte do texto.
+        textoReiniciar.getData().setScale(2);                   //Tamanho da fonte do texto.
 
         shapeRenderer = new ShapeRenderer();                    //inicializa os render dos colliders
         circuloPassaro = new Circle();                          //imprime o collider circulo do passaro
         retanguloCanoCima = new Rectangle();                    //imprime o collider retangulo do cano
-        retanguloCanoBaixo = new Rectangle();                  //imprime o collider retangulo do cano
+        retanguloCanoBaixo = new Rectangle();                   //imprime o collider retangulo do cano
+
+        somColisão = Gdx.audio.newSound(Gdx.files.internal("som_batida.wav"));     //Imprime o som.
+        somVoando = Gdx.audio.newSound(Gdx.files.internal("som_asa.wav"));         //Imprime o som.
+        somPontuacao = Gdx.audio.newSound(Gdx.files.internal("som_pontos.wav"));   //imprime o som.
+
+        preferencias = Gdx.app.getPreferences("flappybird");                      //para armazenar preferencias
+        pontuacaoMaxima = preferencias.getInteger("pontuacaoMaxima", 0);   // para pegar a pontuação maxima e inicializar
 
     }
 
@@ -136,14 +154,16 @@ public class jogo extends ApplicationAdapter {
 
         if(estadoJogo == 0)   {                              //designa o estado inicial do jogo e muda com o toque na tela apenas uma vez
 
-            if (Gdx.input.justTouched()) {                          //impulsiona pra cima.
-                gravidade = -25;
+            if (Gdx.input.justTouched()) {                          //impulsiona pra cima se tocar na tela.
+                gravidade = -15;
                 estadoJogo = 1;
+                somVoando.play();                            //imprime o som qnd toca na tela
             }
         } else if (estadoJogo == 1){                        //se o estado do jogo foi trocado no metodo de cima, deixa tocar mais vezes pra voar
 
-            if (Gdx.input.justTouched()) {                          //impulsiona pra cima.
-                gravidade = -25;
+            if (Gdx.input.justTouched()) {                          //impulsiona pra cima se tocar na tela.
+                gravidade = -15;
+                somVoando.play();                            //imprime o som qnd toca na tela
             }
 
             posicaoCanoHorizontal -= Gdx.graphics.getDeltaTime() * 200;       //movimentação e velocidade do cano que vai vir na direção do player.
@@ -158,7 +178,25 @@ public class jogo extends ApplicationAdapter {
                 posicaoInicialVerticalPassaro = posicaoInicialVerticalPassaro - gravidade;
 
             gravidade++;   //incrementa a gravidade.
-        } else if (estadoJogo == 2){
+
+        } else if (estadoJogo == 2){           //se o estado do jogo for = a 2
+
+            if(pontos > pontuacaoMaxima){
+                pontuacaoMaxima = pontos;
+                preferencias.putInteger("pontuacaoMaxima", pontuacaoMaxima);
+            }
+
+            posicaoHorizontalPassaro -= Gdx.graphics.getDeltaTime() * 500;  //faz o passaro voltar pra tras qnd bate
+
+            if(toqueTela){                                                  //se tocar na tela.
+                estadoJogo = 0;                                             //o estado do jogo volta pra 0.
+                pontos = 0;                                                 //pontos vai pra 0.
+                gravidade = 0;                                              //gravidade vai para 0.
+                posicaoHorizontalPassaro = 0;                               //para n aparecer o passaro no lugar errado.
+                posicaoInicialVerticalPassaro = alturaDispositivo / 2;      //passarinho volta ao ponto inicial.
+                posicaoCanoHorizontal = larguraDispositivo;                 //volta os canos.
+
+            }
 
         }
     }
@@ -168,17 +206,17 @@ public class jogo extends ApplicationAdapter {
         batch.begin();   //inicializa a execução.
 
         batch.draw(fundo, 0, 0, larguraDispositivo, alturaDispositivo);          //instancia o fundo no celular utilizando o tamanho da tela passado como parametro.
-        batch.draw(passaros[(int) variacao], 50, posicaoInicialVerticalPassaro);    //instacia o passaro no celular com a posição dele e animação.
+        batch.draw(passaros[(int) variacao], 50 + posicaoHorizontalPassaro, posicaoInicialVerticalPassaro);    //instacia o passaro no celular com a posição dele e animação.
 
-        batch.draw(canoBaixo, posicaoCanoHorizontal -100, alturaDispositivo/2 - canoBaixo.getHeight() - espaçoEntreCanos/2 + posicaoCanoVertical);  //instancia o cano na tela com espaço entre eles.
-        batch.draw(canoTopo, posicaoCanoHorizontal -100,alturaDispositivo/2 + espaçoEntreCanos + posicaoCanoVertical);                              //instancia o cano na tela com espaço entre eles.
+        batch.draw(canoBaixo, posicaoCanoHorizontal, alturaDispositivo / 2 - canoBaixo.getHeight() - espaçoEntreCanos / 2 + posicaoCanoVertical);  //instancia o cano na tela com espaço entre eles.
+        batch.draw(canoTopo, posicaoCanoHorizontal, alturaDispositivo / 2 + espaçoEntreCanos / 2 + posicaoCanoVertical);                           //instancia o cano na tela com espaço entre eles.
 
         textoPontuacao.draw(batch,String.valueOf(pontos), larguraDispositivo / 2, alturaDispositivo - 100);  //n tem batch no começo pq esta vindo de um bitmapFont e desenha a pontuação na tela.
 
         if(estadoJogo == 2){                 //se o estado do jogo for 2
             batch.draw(gameOver, larguraDispositivo / 2 +200 - gameOver.getWidth(), alturaDispositivo / 2);                                                               // desenha o game over na tela com os parametros passados
             textoReiniciar.draw(batch, "TOQUE NA TELA PARA REINICIAR!", larguraDispositivo / 2 -250, alturaDispositivo / 2 - gameOver.getHeight() / 2);               //inicia o escrito de reiniciar na tela com os parametros passados
-            textoMelhorPontuacao.draw(batch, "SUA MELHOR PONTUAÇÃO É: 0 PONTOS", larguraDispositivo / 2 -250, alturaDispositivo / 2 - gameOver.getHeight() * 2);      //inicia o escrito de melhor pontuação com os parametros passados
+            textoMelhorPontuacao.draw(batch, "SUA MELHOR PONTUAÇÃO É:" + pontuacaoMaxima + "PONTOS", larguraDispositivo / 2 -250, alturaDispositivo / 2 - gameOver.getHeight() * 2);      //inicia o escrito de melhor pontuação com os parametros passados
         }
 
         batch.end();   //termina a execução.
@@ -190,6 +228,7 @@ public class jogo extends ApplicationAdapter {
            if(!passouCano){                                                       // verifica se passou do cano.
                pontos++;                                                          //incrementa os pontos.
                passouCano = true;                                                 //se passou do cano, agora é verdadeiro.
+               somPontuacao.play();                                               //imprime o som pontuação ao passar do cano.
            }
         }
 
@@ -208,7 +247,10 @@ public class jogo extends ApplicationAdapter {
 
         if(colisaoCanoBaixo || colisaoCanoCima){                      //mensagem de bateu no cano.
             Gdx.app.log("log", "Colidiu");
-            estadoJogo = 2;
+           if(estadoJogo == 1) {
+               somColisão.play();                                        //imprime o som colisão ao colidir
+               estadoJogo = 2;                                           //muda para o estado dois que é game over.
+           }
         }
     }
 }
