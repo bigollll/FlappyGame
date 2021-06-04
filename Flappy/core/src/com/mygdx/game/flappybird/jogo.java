@@ -5,6 +5,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -12,6 +14,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import java.util.Random;
 
@@ -65,6 +69,12 @@ public class jogo extends ApplicationAdapter {
     Sound somColisão;     //variavel som.
     Sound somPontuacao;   //variavel som.
 
+    //camera
+    private OrthographicCamera camera;                   //pega o tipo de camera a ser utilizada.
+    private Viewport viewport;                           //pega a ViewPort.
+    private final float VIRTUAL_WIDTH = 720;             //largura generica das telas.
+    private final float VIRTUAL_HEIGHT = 1280;           //altura generica das telas.
+
 
     @Override
     public void create() {
@@ -78,6 +88,8 @@ public class jogo extends ApplicationAdapter {
 
     @Override
     public void render() {
+
+        Gdx.gl.glClear((GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT));       //economizando na renderização qnd troca de tela.
 
         verificarEstadoJogo();
         validarPontos();
@@ -103,7 +115,7 @@ public class jogo extends ApplicationAdapter {
         passaros[1] = new Texture("passaro2.png"); //pega a imagem 2.
         passaros[2] = new Texture("passaro3.png"); //pega a imagem 3.
 
-        fundo = new Texture("fundo.png");          //instanciando a imagem na interface.
+        fundo = new Texture("fundo.png");                 //instanciando a imagem na interface.
         canoTopo = new Texture("cano_topo_maior.png");    //pega a imagem do cano.
         canoBaixo = new Texture("cano_baixo_maior.png");  //pega a imagem do cano.
 
@@ -116,8 +128,8 @@ public class jogo extends ApplicationAdapter {
         batch = new SpriteBatch();                               //instanciando um obj a ser contruido.
         random = new Random();                                   //para randomizar os canos.
 
-        larguraDispositivo = Gdx.graphics.getWidth();           //pega a largura do dispositivo.
-        alturaDispositivo = Gdx.graphics.getHeight();           //pega a altura do dispositivo.
+        larguraDispositivo = VIRTUAL_WIDTH;                     //pega a largura generica do dispositivo passado na variavel.
+        alturaDispositivo = VIRTUAL_HEIGHT;                     //pega a altura generica do dispositivo passado na variavel.
         posicaoInicialVerticalPassaro = alturaDispositivo / 2;  //posiciona o passaro no meio da tela.
         posicaoCanoHorizontal = larguraDispositivo;             //iguala a posiçao do cano com o tamanho da tela.
         espaçoEntreCanos = 350;                                 //espaçamento entre os canos na tela.
@@ -145,6 +157,10 @@ public class jogo extends ApplicationAdapter {
 
         preferencias = Gdx.app.getPreferences("flappybird");                      //para armazenar preferencias
         pontuacaoMaxima = preferencias.getInteger("pontuacaoMaxima", 0);   // para pegar a pontuação maxima e inicializar
+
+        camera = new OrthographicCamera();                                              //dizendo que a camera agora é ortografica
+        camera.position.set(VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT / 2, 0);        //instanciando a camera com as medidas.
+        viewport = new StretchViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, camera);          //dizendo que o viewPort é uma stretch com as medidas do parametro.
 
     }
 
@@ -203,6 +219,8 @@ public class jogo extends ApplicationAdapter {
 
     private void desenharTexturas() {
 
+        batch.setProjectionMatrix(camera.combined);      //combinando o tamanho da camera com o tamanho do aparelho.
+
         batch.begin();   //inicializa a execução.
 
         batch.draw(fundo, 0, 0, larguraDispositivo, alturaDispositivo);          //instancia o fundo no celular utilizando o tamanho da tela passado como parametro.
@@ -222,6 +240,12 @@ public class jogo extends ApplicationAdapter {
         batch.end();   //termina a execução.
 
     }
+
+    @Override
+    public void resize(int width, int height){            //metodo criado para ajustar o tamanho da tela.
+        viewport.update(width, height);                   //viewport sempre da um update pra ser o melhor tamanho pro aparelho.
+    }
+
     private void validarPontos() {
 
         if(posicaoCanoHorizontal < 50 - passaros[0].getWidth()){                  //condicional ao passar do cano.
