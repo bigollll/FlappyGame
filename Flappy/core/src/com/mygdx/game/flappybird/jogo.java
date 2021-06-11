@@ -125,18 +125,18 @@ public class jogo extends ApplicationAdapter {
     private void inicializaTexturas() {
 
         passaros = new Texture[3];                             //instanciando a imagem na interface.
-        passaros[0] = new Texture("Red_01.png"); //pega a imagem 1.
-        passaros[1] = new Texture("Red_02.png"); //pega a imagem 2.
-        passaros[2] = new Texture("Red_03.png"); //pega a imagem 3.
+        passaros[0] = new Texture("Pidgey_01.png"); //pega a imagem 1.
+        passaros[1] = new Texture("Pidgey_02.png"); //pega a imagem 2.
+        passaros[2] = new Texture("Pidgey_03.png"); //pega a imagem 3.
 
         fundo = new Texture("fundo.png");                        //instanciando a imagem na interface.
         canoTopo = new Texture("cano_topo_maior.png");           //pega a imagem do cano.
         canoBaixo = new Texture("cano_baixo_maior.png");         //pega a imagem do cano.
 
-        ouroCoin = new Texture("AngryCoin_gold.png");
-        prataCoin = new Texture("AngryCoin_silver.png");
+        ouroCoin = new Texture("PokeCoin_Gold.png");
+        prataCoin = new Texture("PokeCoin_Silver.png");
 
-        flappyLogo = new Texture("Angryflappy_logo.png");        //pega a imagem logo
+        flappyLogo = new Texture("Flappymon_logo.png");        //pega a imagem logo
         gameOver = new Texture("game_over.png");                 //pega imagem do gameOver
 
     }
@@ -316,8 +316,8 @@ public class jogo extends ApplicationAdapter {
         circuloPassaro.set(50 + passaros[0].getWidth() / 2, posicaoInicialVerticalPassaro + passaros[0].getHeight() / 2, passaros[0].getWidth() / 2);                                     //associando o circulo do collider ao passaro.
         retanguloCanoBaixo.set(posicaoCanoHorizontal, alturaDispositivo / 2 - canoBaixo.getHeight() - espaçoEntreCanos / 2 + posicaoCanoVertical, canoBaixo.getWidth(), canoBaixo.getHeight());     //associando o retangulo do collider ao cano baixo.
         retanguloCanoCima.set(posicaoCanoHorizontal, alturaDispositivo / 2 + espaçoEntreCanos / 2 + posicaoCanoVertical, canoTopo.getWidth(), canoTopo.getHeight() );                               //associando o retangulo do collider ao cano topo.
-        //circuloCoinOuro.set(ouroCoin.getWidth(), );
-        //circuloCoinPrata.set();
+        circuloCoinOuro.set(ouroCoin.getHeight(), 300 + posicaoCoinVertical + ouroCoin.getHeight() / 2, ouroCoin.getWidth() );                                                                      //"coloca o collider na moeda"
+        circuloCoinPrata.set(prataCoin.getHeight(), 300 + posicaoCoinVertical + ouroCoin.getHeight() / 2, prataCoin.getWidth() );                                                                   //"coloca o collider na moeda"
 
         boolean colisaoCanoCima = Intersector.overlaps(circuloPassaro, retanguloCanoCima);           //se bateu ou nao no cano.
         boolean colisaoCanoBaixo = Intersector.overlaps(circuloPassaro, retanguloCanoBaixo);         //se bateu ou nao no cano.
